@@ -41,9 +41,9 @@ PCBuildr is your expert assistant for PC building, offering:
 
 ## Installation
 
-### Quick Start (No Setup Required)
+### Quick Start
 
-#### Windows:
+#### Windows (Automatic):
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/pcbuildr.git
@@ -56,21 +56,44 @@ python -m venv .venv
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the app
+# Run everything (backend + frontend) with one command
+run_pcbuildr.bat
+```
+
+#### Windows (Manual - 2 Terminal Windows):
+**Terminal 1 - Backend:**
+```bash
+cd pcbuildr
+.venv\Scripts\activate
+cd Backend
+python main.py
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd pcbuildr
+.venv\Scripts\activate
 cd Frontend
 python app.py
 ```
 
 #### macOS/Linux:
+**Terminal 1 - Backend:**
 ```bash
 git clone https://github.com/yourusername/pcbuildr.git
 cd pcbuildr
-
 python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
+cd Backend
+python main.py
+```
 
+**Terminal 2 - Frontend:**
+```bash
+cd pcbuildr
+source .venv/bin/activate
 cd Frontend
 python app.py
 ```
@@ -78,6 +101,12 @@ python app.py
 ### Demo Credentials
 - **Username:** DemoUsr
 - **Password:** 2025
+
+### ⚠️ Important
+The backend **must** be running before you start the frontend. If you see login errors, check:
+1. Backend is running on `http://127.0.0.1:8000`
+2. No other process is using port 8000
+3. Both are using the same Python environment
 
 Start building immediately - no LLM installation needed!
 
