@@ -1,0 +1,13 @@
+PyQt5
+requests
+fastapi
+uvicorn
+winshell
+pywin32
+beautifulsoup4
+python-dotenv
+
+# Optional AI providers (uncomment to enable)
+# openai>=1.0.0
+# openrouter-python
+# groq>=0.4.1

@@ -1,0 +1,437 @@
+{
+  "cpus_amd": [
+    {
+      "name": "AMD Ryzen 5 5600",
+      "brand": "AMD",
+      "socket": "AM4",
+      "cores": 6,
+      "threads": 12,
+      "performance_score": 7,
+      "price_usd": 149,
+      "description": "Excelente opción económica para gaming 1080p y multitarea ligera."
+    },
+    {
+      "name": "AMD Ryzen 5 5600X",
+      "brand": "AMD",
+      "socket": "AM4",
+      "cores": 6,
+      "threads": 12,
+      "performance_score": 8,
+      "price_usd": 179,
+      "description": "Procesador equilibrado para juegos y productividad moderada."
+    },
+    {
+      "name": "AMD Ryzen 7 5700X",
+      "brand": "AMD",
+      "socket": "AM4",
+      "cores": 8,
+      "threads": 16,
+      "performance_score": 8,
+      "price_usd": 229,
+      "description": "Rendimiento sólido para gaming competitivo y edición ligera."
+    },
+    {
+      "name": "AMD Ryzen 7 5800X3D",
+      "brand": "AMD",
+      "socket": "AM4",
+      "cores": 8,
+      "threads": 16,
+      "performance_score": 9,
+      "price_usd": 329,
+      "description": "Uno de los mejores procesadores AM4 para juegos gracias a su 3D V-Cache."
+    },
+    {
+      "name": "AMD Ryzen 9 5900X",
+      "brand": "AMD",
+      "socket": "AM4",
+      "cores": 12,
+      "threads": 24,
+      "performance_score": 9,
+      "price_usd": 349,
+      "description": "Potencia para multitarea y creación de contenido con excelente rendimiento en juegos."
+    }
+  ],
+  "cpus_intel": [
+    {
+      "name": "Intel Core i3-12100F",
+      "brand": "Intel",
+      "socket": "LGA1700",
+      "cores": 4,
+      "threads": 8,
+      "performance_score": 6,
+      "price_usd": 109,
+      "description": "Ideal para PCs económicas de oficina o gaming básico."
+    },
+    {
+      "name": "Intel Core i5-12400F",
+      "brand": "Intel",
+      "socket": "LGA1700",
+      "cores": 6,
+      "threads": 12,
+      "performance_score": 7,
+      "price_usd": 169,
+      "description": "Gran valor para gaming 1080p y multitarea ligera."
+    },
+    {
+      "name": "Intel Core i5-13400F",
+      "brand": "Intel",
+      "socket": "LGA1700",
+      "cores": 10,
+      "threads": 16,
+      "performance_score": 8,
+      "price_usd": 219,
+      "description": "Muy bueno para gaming y tareas de productividad media."
+    },
+    {
+      "name": "Intel Core i7-13700K",
+      "brand": "Intel",
+      "socket": "LGA1700",
+      "cores": 16,
+      "threads": 24,
+      "performance_score": 9,
+      "price_usd": 409,
+      "description": "Procesador de alto rendimiento para creadores y gamers."
+    },
+    {
+      "name": "Intel Core i9-13900K",
+      "brand": "Intel",
+      "socket": "LGA1700",
+      "cores": 24,
+      "threads": 32,
+      "performance_score": 10,
+      "price_usd": 549,
+      "description": "Rendimiento extremo en gaming, edición y renderizado."
+    }
+  ],
+  "ram": [
+    {
+      "name": "Corsair Vengeance LPX DDR4",
+      "capacity": "16GB (2x8GB)",
+      "speed": "3200 MT/s",
+      "type": "DDR4",
+      "performance_score": 7,
+      "price_usd": 49,
+      "description": "Memoria DDR4 confiable y de bajo perfil para la mayoría de PCs."
+    },
+    {
+      "name": "G.Skill Ripjaws V DDR4",
+      "capacity": "32GB (2x16GB)",
+      "speed": "3600 MT/s",
+      "type": "DDR4",
+      "performance_score": 8,
+      "price_usd": 89,
+      "description": "Excelente para gaming y edición con buena velocidad."
+    },
+    {
+      "name": "Kingston Fury Beast DDR4",
+      "capacity": "16GB (2x8GB)",
+      "speed": "3600 MT/s",
+      "type": "DDR4",
+      "performance_score": 7,
+      "price_usd": 55,
+      "description": "Buena relación calidad-precio para plataformas AM4 e Intel DDR4."
+    },
+    {
+      "name": "Crucial Ballistix DDR4",
+      "capacity": "32GB (2x16GB)",
+      "speed": "3200 MT/s",
+      "type": "DDR4",
+      "performance_score": 8,
+      "price_usd": 79,
+      "description": "Estable y confiable para trabajo y gaming."
+    },
+    {
+      "name": "TeamGroup T-Force Vulcan Z DDR4",
+      "capacity": "16GB (2x8GB)",
+      "speed": "3200 MT/s",
+      "type": "DDR4",
+      "performance_score": 6,
+      "price_usd": 45,
+      "description": "Buena opción económica para PCs de entrada."
+    }
+  ],
+  "storage": [
+    {
+      "name": "Samsung 970 EVO Plus",
+      "type": "NVMe SSD",
+      "capacity": "1TB",
+      "interface": "PCIe 3.0",
+      "performance_score": 9,
+      "price_usd": 79,
+      "description": "SSD NVMe rápido y confiable para gaming y trabajo."
+    },
+    {
+      "name": "WD Blue SN570",
+      "type": "NVMe SSD",
+      "capacity": "1TB",
+      "interface": "PCIe 3.0",
+      "performance_score": 8,
+      "price_usd": 59,
+      "description": "Opción económica con buen rendimiento."
+    },
+    {
+      "name": "Crucial MX500",
+      "type": "SATA SSD",
+      "capacity": "1TB",
+      "interface": "SATA III",
+      "performance_score": 7,
+      "price_usd": 55,
+      "description": "SSD SATA confiable y duradero."
+    },
+    {
+      "name": "Kingston A2000",
+      "type": "NVMe SSD",
+      "capacity": "500GB",
+      "interface": "PCIe 3.0",
+      "performance_score": 7,
+      "price_usd": 35,
+      "description": "Rápido para el sistema operativo y programas."
+    },
+    {
+      "name": "Seagate Barracuda HDD",
+      "type": "HDD",
+      "capacity": "2TB",
+      "interface": "SATA III",
+      "performance_score": 5,
+      "price_usd": 49,
+      "description": "Almacenamiento masivo a bajo costo."
+    }
+  ],
+  "gpus_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 3060",
+      "vram": "12GB GDDR6",
+      "performance_score": 7,
+      "price_usd": 279,
+      "description": "Buena para gaming 1080p/1440p con Ray Tracing básico."
+    },
+    {
+      "name": "NVIDIA GeForce RTX 3060 Ti",
+      "vram": "8GB GDDR6",
+      "performance_score": 8,
+      "price_usd": 339,
+      "description": "Gran rendimiento en 1440p y Ray Tracing moderado."
+    },
+    {
+      "name": "NVIDIA GeForce RTX 3070",
+      "vram": "8GB GDDR6",
+      "performance_score": 9,
+      "price_usd": 399,
+      "description": "Potente para 1440p alto y 4K ligero."
+    },
+    {
+      "name": "NVIDIA GeForce RTX 3080",
+      "vram": "10GB GDDR6X",
+      "performance_score": 9,
+      "price_usd": 499,
+      "description": "Excelente para 4K y alto rendimiento gráfico."
+    },
+    {
+      "name": "NVIDIA GeForce RTX 3090",
+      "vram": "24GB GDDR6X",
+      "performance_score": 10,
+      "price_usd": 899,
+      "description": "Máxima potencia para edición y gaming extremo."
+    }
+  ],
+  "gpus_amd": [
+    {
+      "name": "AMD Radeon RX 6600",
+      "vram": "8GB GDDR6",
+      "performance_score": 6,
+      "price_usd": 229,
+      "description": "Eficiente para gaming 1080p."
+    },
+    {
+      "name": "AMD Radeon RX 6600 XT",
+      "vram": "8GB GDDR6",
+      "performance_score": 7,
+      "price_usd": 269,
+      "description": "Mayor rendimiento en 1080p y 1440p básico."
+    },
+    {
+      "name": "AMD Radeon RX 6700 XT",
+      "vram": "12GB GDDR6",
+      "performance_score": 8,
+      "price_usd": 349,
+      "description": "Buen rendimiento en 1440p y gran VRAM."
+    },
+    {
+      "name": "AMD Radeon RX 6800",
+      "vram": "16GB GDDR6",
+      "performance_score": 9,
+      "price_usd": 479,
+      "description": "Excelente para 1440p ultra y 4K moderado."
+    },
+    {
+      "name": "AMD Radeon RX 6950 XT",
+      "vram": "16GB GDDR6",
+      "performance_score": 10,
+      "price_usd": 699,
+      "description": "Rendimiento tope de gama para cualquier resolución."
+    }
+  ],
+  "psus": [
+    {
+      "name": "Corsair RM750x",
+      "wattage": "750W",
+      "efficiency": "80+ Gold",
+      "performance_score": 9,
+      "price_usd": 129,
+      "description": "Fuente modular de alta calidad y eficiencia."
+    },
+    {
+      "name": "EVGA 600 BR",
+      "wattage": "600W",
+      "efficiency": "80+ Bronze",
+      "performance_score": 6,
+      "price_usd": 49,
+      "description": "Opción económica para PCs básicas."
+    },
+    {
+      "name": "Seasonic Focus GX-650",
+      "wattage": "650W",
+      "efficiency": "80+ Gold",
+      "performance_score": 8,
+      "price_usd": 99,
+      "description": "Compacta, modular y confiable."
+    },
+    {
+      "name": "Cooler Master MWE 750 Gold",
+      "wattage": "750W",
+      "efficiency": "80+ Gold",
+      "performance_score": 8,
+      "price_usd": 109,
+      "description": "Buena opción calidad-precio para gaming."
+    },
+    {
+      "name": "Thermaltake Smart 500W",
+      "wattage": "500W",
+      "efficiency": "80+ Standard",
+      "performance_score": 5,
+      "price_usd": 39,
+      "description": "Básica para equipos de bajo consumo."
+    }
+  ],
+  "cases": [
+    {
+      "name": "NZXT H510",
+      "form_factor": "ATX",
+      "performance_score": 8,
+      "price_usd": 79,
+      "description": "Minimalista con buena gestión de cables."
+    },
+    {
+      "name": "Cooler Master MasterBox Q300L",
+      "form_factor": "Micro-ATX",
+      "performance_score": 7,
+      "price_usd": 49,
+      "description": "Compacta y económica con flujo de aire decente."
+    },
+    {
+      "name": "Fractal Design Meshify C",
+      "form_factor": "ATX",
+      "performance_score": 9,
+      "price_usd": 99,
+      "description": "Flujo de aire excelente y diseño moderno."
+    },
+    {
+      "name": "Lian Li Lancool 215",
+      "form_factor": "ATX",
+      "performance_score": 9,
+      "price_usd": 99,
+      "description": "Incluye ventiladores grandes para máxima refrigeración."
+    },
+    {
+      "name": "Phanteks Eclipse P300A",
+      "form_factor": "ATX",
+      "performance_score": 8,
+      "price_usd": 69,
+      "description": "Case con frontal de malla para buen flujo de aire."
+    }
+  ],
+  "motherboards": [
+    {
+      "name": "MSI B550 Tomahawk",
+      "socket": "AM4",
+      "chipset": "B550",
+      "performance_score": 8,
+      "price_usd": 149,
+      "description": "Excelente VRM y soporte PCIe 4.0."
+    },
+    {
+      "name": "ASUS TUF Gaming B550-PLUS",
+      "socket": "AM4",
+      "chipset": "B550",
+      "performance_score": 8,
+      "price_usd": 139,
+      "description": "Durabilidad y buen rendimiento para AM4."
+    },
+    {
+      "name": "Gigabyte B450 AORUS Elite",
+      "socket": "AM4",
+      "chipset": "B450",
+      "performance_score": 7,
+      "price_usd": 99,
+      "description": "Opción económica compatible con Ryzen 5000."
+    },
+    {
+      "name": "ASUS Prime Z690-P",
+      "socket": "LGA1700",
+      "chipset": "Z690",
+      "performance_score": 8,
+      "price_usd": 189,
+      "description": "Placa robusta para Intel 12ª y 13ª gen."
+    },
+    {
+      "name": "MSI PRO Z790-A WIFI",
+      "socket": "LGA1700",
+      "chipset": "Z790",
+      "performance_score": 9,
+      "price_usd": 229,
+      "description": "Gran conectividad y soporte PCIe 5.0."
+    }
+  ],
+  "cooling": [
+    {
+      "name": "Cooler Master Hyper 212 Black Edition",
+      "type": "Aire",
+      "compatible_sockets": ["AM4", "LGA1700"],
+      "performance_score": 7,
+      "price_usd": 39,
+      "description": "Disipador clásico de buena relación calidad-precio."
+    },
+    {
+      "name": "Noctua NH-D15",
+      "type": "Aire",
+      "compatible_sockets": ["AM4", "LGA1700"],
+      "performance_score": 10,
+      "price_usd": 99,
+      "description": "Uno de los mejores disipadores por aire del mercado."
+    },
+    {
+      "name": "Corsair iCUE H100i RGB Pro XT",
+      "type": "AIO 240mm",
+      "compatible_sockets": ["AM4", "LGA1700"],
+      "performance_score": 9,
+      "price_usd": 129,
+      "description": "Refrigeración líquida eficiente y silenciosa."
+    },
+    {
+      "name": "Arctic Freezer 34 eSports DUO",
+      "type": "Aire",
+      "compatible_sockets": ["AM4", "LGA1700"],
+      "performance_score": 8,
+      "price_usd": 45,
+      "description": "Gran rendimiento y bajo nivel de ruido."
+    },
+    {
+      "name": "DeepCool Gammaxx 400 V2",
+      "type": "Aire",
+      "compatible_sockets": ["AM4", "LGA1700"],
+      "performance_score": 6,
+      "price_usd": 25,
+      "description": "Opción económica para refrigeración básica."
+    }
+  ]
+}
