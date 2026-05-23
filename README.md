@@ -1,23 +1,30 @@
 # PCBuildr 🦝
 
-**The Intelligent PC Building Assistant** - Build, compare, and maintain desktop computers with AI-powered guidance.
+> Professional Desktop PC Hardware Analysis and Builder Tool
 
-PCBuildr is your expert assistant for PC building, offering:
-- 🤖 **Offline-First AI** - Works immediately without any setup (powered by intelligent logic, not local LLMs)
+**Build, analyze, and compare desktop computer configurations with intelligent compatibility checking.**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Status: Beta](https://img.shields.io/badge/Status-Beta-blue.svg)]()
+[![Python: 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+
+PCBuildr is your desktop PC building companion, offering:
 - 🔧 **Component Compatibility** - Automatically checks if your components work together
+- 📊 **Build Analysis** - Analyze performance tiers, bottlenecks, and power requirements
 - 💡 **Smart Recommendations** - Get PC build suggestions based on budget and use case
-- 📊 **Performance Analysis** - Detect bottlenecks and optimize your build
-- 🛒 **Price Comparison** - Find components across multiple stores
+- 🛒 **Component Database** - Browse and select from current hardware inventory
 - 🌐 **Bilingual** - English & Spanish support
+- 💾 **Offline-First** - Works immediately without any API keys or internet
 
 ## Features
 
-### ✨ Bytecoon AI Assistant
-- Intelligent recommendations without API keys or local models
-- Ask questions about hardware, compatibility, performance
-- Get explanations of technical specs
-- Compare components intelligently
-- Optional: Enhance with OpenAI, OpenRouter, or Groq API keys
+### 📊 Build Analysis Engine
+- Real-time build analysis and performance scoring
+- CPU/GPU bottleneck detection
+- Power supply validation and wattage estimation
+- Component tier classification (Entry-Level to Enthusiast)
+- Compatibility issue detection
+- Intelligent upgrade recommendations
 
 ### 🔍 Compatibility Checker
 - CPU socket matching
@@ -26,168 +33,152 @@ PCBuildr is your expert assistant for PC building, offering:
 - Physical fit checks (GPU length, cooler height)
 - Bottleneck detection
 
-### 💰 Component Database
-- Real-time price scraping from:
-  - Extreme Tech (extremetechcr.com)
-  - Intelec (intelec.co.cr)
-  - Facebook Marketplace
-- Component categorization and filtering
+### � Component Database
+- Offline component inventory
+- Easy component categorization and filtering
+- Price reference in Costa Rican Colones (₡)
+- Support for future price tracking
 
 ### 📱 User Management
 - Multi-user login system
-- Per-user build history
+- Per-user build history and profiles
 - Save and manage multiple PC configurations
-- Export builds as JSON
+
+## Technologies
+
+- **Frontend:** PyQt5 (Python GUI framework)
+- **Backend:** FastAPI (async Python web framework)
+- **Data:** JSON-based component database
+- **Language:** Python 3.8+
+- **OS:** Windows, macOS, Linux
 
 ## Installation
 
-### Quick Start
+### Quick Start - Windows
 
-#### Windows (Automatic):
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/pcbuildr.git
 cd pcbuildr
 
-# Create virtual environment
+# Create and activate virtual environment
 python -m venv .venv
 .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Run everything (backend + frontend) with one command
+# Run the application
+python Frontend/app.py
+```
+
+Or use the batch file shortcut:
+```bash
 run_pcbuildr.bat
 ```
 
-#### Windows (Manual - 2 Terminal Windows):
-**Terminal 1 - Backend:**
-```bash
-cd pcbuildr
-.venv\Scripts\activate
-cd Backend
-python main.py
-```
+### Quick Start - macOS/Linux
 
-**Terminal 2 - Frontend:**
-```bash
-cd pcbuildr
-.venv\Scripts\activate
-cd Frontend
-python app.py
-```
-
-#### macOS/Linux:
-**Terminal 1 - Backend:**
 ```bash
 git clone https://github.com/yourusername/pcbuildr.git
 cd pcbuildr
+
 python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
-cd Backend
-python main.py
-```
-
-**Terminal 2 - Frontend:**
-```bash
-cd pcbuildr
-source .venv/bin/activate
-cd Frontend
-python app.py
+python Frontend/app.py
 ```
 
 ### Demo Credentials
 - **Username:** DemoUsr
 - **Password:** 2025
 
-### ⚠️ Important
-The backend **must** be running before you start the frontend. If you see login errors, check:
-1. Backend is running on `http://127.0.0.1:8000`
-2. No other process is using port 8000
-3. Both are using the same Python environment
+## Screenshots
 
-Start building immediately - no LLM installation needed!
+PCBuildr's intuitive interface makes PC building accessible to everyone:
+
+- **Main Interface** - Clean dashboard with PC builder and analysis tools
+- **Component Selection** - Browse and select from comprehensive component database
+- **Build Analysis** - Real-time compatibility checking and performance scoring
+- **Recommendations** - Smart suggestions based on budget and use case
+
+See the [screenshots/](./screenshots/) directory for examples.
+
+## Usage
+
+### Building a PC
+1. **Log in or create an account** - Use demo credentials to test
+2. **Go to PC Builder** - Select components from each category
+3. **View Build Analysis** - See real-time performance scoring, compatibility issues, and recommendations
+4. **Save Build** - Store your configuration for later
+5. **Manage Profiles** - Switch between saved builds or create new ones
+
+### Understanding Build Analysis
+- **Performance Score (0-100)** - Composite metric of CPU and GPU capabilities
+- **Build Tier** - Classification: Entry-Level, Mid-Range, High-End, Enthusiast
+- **Compatibility Issues** - List of any detected problems (missing components, incompatibilities)
+- **Power Estimation** - Estimated system power draw in watts
+- **Bottleneck Analysis** - Identifies if CPU or GPU limits overall performance
+- **Recommendations** - Suggestions for component upgrades or changes
 
 ## Configuration
 
-### Environment Variables
-Copy `.env.template` to `.env` and customize (optional):
+PCBuildr works out of the box without configuration. For advanced customization:
 
+### Environment Variables (Optional)
 ```bash
-cp .env.template .env
+# Default language
+PCBUILDR_LANGUAGE=es
+
+# Default theme
+PCBUILDR_THEME=dark
+
+# Debug mode
+DEBUG=false
 ```
 
-Edit `.env` to:
-- Change UI language and theme
-- Enable optional AI providers
-
-### Optional: Enhanced AI with API Keys
-
-To unlock advanced AI responses, set any of these environment variables:
-
-**OpenAI:**
-```bash
-AI_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-```
-
-**OpenRouter (unlimited models):**
-```bash
-AI_PROVIDER=openrouter
-OPENROUTER_API_KEY=sk-or-...
-```
-
-**Groq (fast inference):**
-```bash
-AI_PROVIDER=groq
-GROQ_API_KEY=gsk-...
-```
-
-**Note:** Without API keys, PCBuildr uses intelligent offline mode - fully functional!
+The application stores user data in:
+- `usuarios.json` - User accounts and authentication
+- `componentes.json` - Component inventory
+- `userdata/` - Per-user build configurations
 
 ## Architecture
 
 PCBuildr is built with a clean, modular architecture:
 
-- **Frontend/** - PyQt5 GUI application
-- **Backend/** - FastAPI REST API for compatibility checking and user management
-- **core/** - Intelligent AI modules (recommender, compatibility checker, explainer, scorer)
-- **ai/** - Provider abstraction (offline, OpenAI, OpenRouter, Groq)
+- **Frontend/** - PyQt5 GUI application (main executable)
+  - `app.py` - Main application and UI orchestration
+  - `build_analyzer.py` - Build analysis and scoring engine
+  - `user_data/` - User profiles and build history
+- **core/** - Intelligent analysis modules
+  - `compatibility.py` - Component compatibility checking
+  - `recommender.py` - Build recommendations engine
+  - `scoring.py` - Performance and build tier scoring
+  - `explainer.py` - Component specifications and documentation
+  - `responses.py` - Offline response generation
+- **Backend/** - FastAPI server (optional, for future features)
 - **data/** - Reference databases (JSON)
+  - `componentes.json` - Component inventory
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed explanation.
-
-## Usage
-
-### Building a PC
-1. **Chat with Bytecoon** - Ask for recommendations based on your budget and use case
-2. **Select Components** - Choose CPU, GPU, RAM, PSU, case, and cooling
-3. **Check Compatibility** - App automatically validates your build
-4. **Save Build** - Store multiple builds in your profile
-5. **Export** - Save as JSON for sharing
-
-### Building from Scratch
-1. Describe your use case: Gaming, Workstation, Office, Streaming
-2. Set your budget in USD
-3. Bytecoon suggests starter builds
-4. Fine-tune components using the selector
-5. App validates and suggests alternatives
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed technical explanation.
 
 ## FAQ
 
-**Q: Do I need to install a local AI model like Ollama or LM Studio?**
-A: No! PCBuildr works fully offline with intelligent built-in logic. Optional: Add an API key for cloud AI.
+**Q: How do I start the application?**
+A: Run `python Frontend/app.py` or use `run_pcbuildr.bat` on Windows.
+
+**Q: Do I need to install any external dependencies like Ollama?**
+A: No! PCBuildr is self-contained and works completely offline. No external services required.
 
 **Q: Can I use it without the backend?**
-A: The frontend works offline for component selection and chat. Backend (optional) adds cloud price scraping.
+A: Yes! The frontend is fully functional standalone for all core features.
 
 **Q: How accurate are the compatibility checks?**
-A: Very! We check socket compatibility, RAM types, power budgets, and physical fit.
+A: Very accurate! We validate socket compatibility, RAM types, power budgets, and physical constraints.
 
-**Q: Can I export my builds?**
-A: Yes! Builds export to JSON format for sharing or backup.
+**Q: What can I do with saved builds?**
+A: Save multiple PC configurations under your user profile. Each build includes component selections and build analysis.
 
 ## Development
 

@@ -1,23 +1,27 @@
 @echo off
+REM PCBuildr Launcher for Windows
+REM This batch file starts the PCBuildr application automatically
+
 cd /d "%~dp0"
 echo ====================================================
 echo PCBuildr - Iniciando aplicacion
 echo ====================================================
 echo.
-echo Activando entorno virtual...
-call .venv\Scripts\activate.bat
+
+REM Check if Python venv exists
+if exist .venv\Scripts\python.exe (
+    echo Usando entorno virtual...
+    set PYTHON=.venv\Scripts\python.exe
+) else (
+    echo Usando Python global...
+    set PYTHON=python
+)
 
 echo.
-echo Iniciando Backend...
-start "PCBuildr Backend" cmd /k "cd Backend && python main.py"
+echo Ejecutando launcher de PCBuildr...
+%PYTHON% run_app.py
 
-echo Esperando a que el backend esté listo...
-timeout /t 5 /nobreak
-
-echo.
-echo Iniciando Frontend...
-cd Frontend
-python app.py
+pause
 
 echo.
 echo Cerrando PCBuildr...

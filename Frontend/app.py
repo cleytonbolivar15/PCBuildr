@@ -1,65 +1,94 @@
 import sys
-import requests
 from PyQt5.QtWidgets import (
-    QMainWindow, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QWidget, QSizePolicy, QFrame,
-    QLineEdit, QPushButton, QTabWidget, QApplication, QComboBox, QDockWidget,
-    QListWidget, QListWidgetItem, QSplitter, QFileDialog, QInputDialog, QDesktopWidget,
-    QDialog, QTextEdit, QProgressBar, QFormLayout, QMessageBox, QStackedWidget
+    QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QWidget, QFrame,
+    QLineEdit, QPushButton, QApplication, QComboBox, QListWidget, QListWidgetItem, QFileDialog, QInputDialog, QDesktopWidget,
+    QDialog, QTextEdit, QFormLayout, QMessageBox, QStackedWidget
 )
-from PyQt5.QtCore import Qt, QSize, QUrl, QTimer
-import subprocess
-import time
-import socket
+from PyQt5.QtCore import Qt, QUrl
 import os
 import re
 import json
-from PyQt5.QtGui import QPixmap, QIcon, QDesktopServices, QColor
-import random
+from PyQt5.QtGui import QPixmap, QDesktopServices
 import sqlite3
 from datetime import datetime
 import hashlib
+from build_analyzer import BuildAnalyzer
 
-# Import Bytecoon AI assistant instead of OpenAI
+# Core modules path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from ai.bytecoon import Bytecoon
-bytecoon = None  # Will be initialized after language selection
 
-def is_port_open(port, host="127.0.0.1"):
+# ============================================================================
+# LOCAL AUTHENTICATION MANAGEMENT (STANDALONE - NO BACKEND)
+# ============================================================================
+
+def load_users_local():
+    """Load users from usuarios.json file"""
+    users_file = os.path.join(os.path.dirname(__file__), "..", "usuarios.json")
+    users = {}
+    if os.path.exists(users_file):
+        try:
+            with open(users_file, "r", encoding="utf-8") as f:
+                users = json.load(f)
+        except Exception:
+            users = {}
+    # Always include demo user
+    users["DemoUsr"] = "2025"
+    return users
+
+def save_users_local(users):
+    """Save users to usuarios.json file"""
+    users_file = os.path.join(os.path.dirname(__file__), "..", "usuarios.json")
+    # Protect demo user and clean empty keys
+    users = {k: v for k, v in users.items() if k.strip()}
+    users["DemoUsr"] = "2025"
     try:
-        with socket.create_connection((host, port), timeout=1):
-            return True
+        os.makedirs(os.path.dirname(users_file), exist_ok=True)
+        with open(users_file, "w", encoding="utf-8") as f:
+            json.dump(users, f, ensure_ascii=False, indent=2)
+        return True
     except Exception:
         return False
 
-def is_backend_ready(port=8000, host="127.0.0.1", timeout=10):
-    """Check if backend is ready"""
-    for i in range(timeout):
-        if is_port_open(port, host):
-            return True
-        time.sleep(1)
-    return False
+def authenticate_user_local(username: str, password: str) -> bool:
+    """Authenticate user locally (no backend)"""
+    users = load_users_local()
+    stored_pass = users.get(username)
+    if stored_pass is None:
+        return False
+    return stored_pass == password
 
-class LoadingDialog(QDialog):
-    def __init__(self, mensaje="Iniciando servicios..."):
-        super().__init__()
-        self.setWindowTitle("PCBuildr - Cargando")
-        # Ajusta tamaño y centra la ventana
-        screen = QDesktopWidget().availableGeometry()
-        width, height = 320, 120
-        self.setFixedSize(width, height)
-        self.move(
-            screen.left() + (screen.width() - width) // 2,
-            screen.top() + (screen.height() - height) // 2
-        )
-        self.setModal(True)
-        layout = QVBoxLayout()
-        label = QLabel(mensaje)
-        label.setStyleSheet("color: #1976D2; font-size: 18px; font-weight: bold; text-align: center;")
-        layout.addWidget(label)
-        self.progress = QProgressBar()
-        self.progress.setRange(0, 0)
-        layout.addWidget(self.progress)
-        self.setLayout(layout)
+def register_user_local(username: str, password: str) -> tuple[bool, str]:
+    """Register new user locally. Returns (success, message)"""
+    if not username or not password:
+        return False, "Username and password required"
+    
+    if username.lower() == "demousr":
+        return False, "Cannot register demo user"
+    
+    users = load_users_local()
+    if username in users:
+        return False, "User already exists"
+    
+    users[username] = password
+    if save_users_local(users):
+        return True, "User registered successfully"
+    else:
+        return False, "Error saving user"
+
+def delete_user_local(username: str) -> tuple[bool, str]:
+    """Delete user locally. Returns (success, message)"""
+    if username.lower() == "demousr":
+        return False, "Cannot delete demo user"
+    
+    users = load_users_local()
+    if username not in users:
+        return False, "User not found"
+    
+    del users[username]
+    if save_users_local(users):
+        return True, "User deleted successfully"
+    else:
+        return False, "Error deleting user"
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "pcbuildr.db")
 
@@ -327,8 +356,8 @@ class WelcomeDialog(QDialog):
         title.setObjectName("welcomeTitle")
         desc = QLabel(
             "PCBuildr es tu asistente inteligente para armar, comparar y mantener computadoras de escritorio.\n"
-            "Te ayuda a elegir componentes compatibles, comparar precios y resolver todas tus dudas sobre hardware de PC.\n"
-            "¡Empieza a crear tu próxima PC con Bytecoon, el mapache tecnológico!"
+            "Te ayuda a elegir componentes compatibles, analizar builds y comparar precios.\n"
+            "¡Empieza a crear tu próxima PC profesional!"
         )
         desc.setWordWrap(True)
         desc.setObjectName("welcomeDesc")
@@ -567,36 +596,18 @@ class AuthDialog(QDialog):
     def login(self):
         user, pw = self.user.text(), self.passw.text()
         try:
+            # Normalize username
             if user.strip().lower() == "demousr":
                 user = "DemoUsr"
-            url = "http://127.0.0.1:8000/login"
-            headers = {"Content-Type": "application/json"}
-            for _ in range(5):
-                try:
-                    r = requests.post(url, json={"username": user, "password": pw}, headers=headers, timeout=2)
-                    break
-                except requests.exceptions.ConnectionError:
-                    time.sleep(1)
-            else:
-                self.error_label.setText("No se pudo conectar al backend. ¿Está corriendo?" if self.language == "es" else "Could not connect to backend. Is it running?")
-                return
-            if r.status_code == 200:
+            
+            # Authenticate locally
+            if authenticate_user_local(user, pw):
                 self.is_accepted = True
                 self.accept()
-            elif r.status_code == 401:
-                self.error_label.setText("❌ Usuario o contraseña incorrecta" if self.language == "es" else "❌ Incorrect username or password")
-            elif r.status_code == 405:
-                self.error_label.setText("Método no permitido. ¿Seguro que el backend está corriendo y acepta POST en /login?" if self.language == "es" else "Method not allowed. Is the backend running and accepting POST on /login?")
-            elif r.status_code == 404:
-                self.error_label.setText("Endpoint /login no encontrado. ¿El backend está corriendo y sin errores?" if self.language == "es" else "Endpoint /login not found. Is the backend running and error-free?")
             else:
-                try:
-                    msg = r.json().get("detail", "Usuario o contraseña incorrectos." if self.language == "es" else "Incorrect username or password.")
-                except Exception:
-                    msg = "Usuario o contraseña incorrectos." if self.language == "es" else "Incorrect username or password."
-                self.error_label.setText(f"❌ {msg}")
+                self.error_label.setText("❌ Usuario o contraseña incorrecta" if self.language == "es" else "❌ Incorrect username or password")
         except Exception as e:
-            self.error_label.setText(f"No se pudo conectar al servidor: {e}" if self.language == "es" else f"Could not connect to server: {e}")
+            self.error_label.setText(f"Error: {e}" if self.language == "es" else f"Error: {e}")
 
     def register(self):
         user, pw = self.user.text(), self.passw.text()
@@ -604,33 +615,23 @@ class AuthDialog(QDialog):
             if user.strip().lower() == "demousr":
                 self.error_label.setText("No puedes registrar el usuario demo." if self.language == "es" else "You cannot register the demo user.")
                 return
-            url = "http://127.0.0.1:8000/register"
-            headers = {"Content-Type": "application/json"}
-            for _ in range(5):
-                try:
-                    r = requests.post(url, json={"username": user, "password": pw}, headers=headers, timeout=2)
-                    break
-                except requests.exceptions.ConnectionError:
-                    time.sleep(1)
-            else:
-                self.error_label.setText("No se pudo conectar al backend. ¿Está corriendo?" if self.language == "es" else "Could not connect to backend. Is it running?")
-                return
-            if r.status_code == 200:
+            
+            # Register locally
+            success, message = register_user_local(user, pw)
+            if success:
                 self.error_label.setText("✅ Usuario registrado. Ahora puedes iniciar sesión." if self.language == "es" else "✅ User registered. You can now sign in.")
-            elif r.status_code == 409:
-                self.error_label.setText("❌ El usuario ya existe." if self.language == "es" else "❌ User already exists.")
-            elif r.status_code == 405:
-                self.error_label.setText("Método no permitido. ¿Seguro que el backend está corriendo y acepta POST en /register?" if self.language == "es" else "Method not allowed. Is the backend running and accepting POST on /register?")
-            elif r.status_code == 404:
-                self.error_label.setText("Endpoint /register no encontrado. ¿El backend está corriendo y sin errores?" if self.language == "es" else "Endpoint /register not found. Is the backend running and error-free?")
+                self.user.clear()
+                self.passw.clear()
             else:
-                try:
-                    msg = r.json().get("detail", "Error al registrar usuario." if self.language == "es" else "Error registering user.")
-                except Exception:
-                    msg = "Error al registrar usuario." if self.language == "es" else "Error registering user."
-                self.error_label.setText(msg)
+                error_msg = message
+                # Translate common errors
+                if "already exists" in message:
+                    error_msg = "El usuario ya existe." if self.language == "es" else "User already exists."
+                elif "required" in message:
+                    error_msg = "Usuario y contraseña son requeridos." if self.language == "es" else "Username and password required."
+                self.error_label.setText(f"❌ {error_msg}")
         except Exception as e:
-            self.error_label.setText(f"No se pudo conectar al servidor: {e}" if self.language == "es" else f"Could not connect to server: {e}")
+            self.error_label.setText(f"Error: {e}")
 
     def delete_user(self):
         user = self.user.text()
@@ -641,33 +642,20 @@ class AuthDialog(QDialog):
             if user.strip().lower() == "demousr":
                 self.error_label.setText("No puedes borrar el usuario demo." if self.language == "es" else "You cannot delete the demo user.")
                 return
-            url = "http://127.0.0.1:8000/delete_user"
-            headers = {"Content-Type": "application/json"}
-            for _ in range(5):
-                try:
-                    r = requests.post(url, json={"username": user}, headers=headers, timeout=2)
-                    break
-                except requests.exceptions.ConnectionError:
-                    time.sleep(1)
-            else:
-                self.error_label.setText("No se pudo conectar al backend. ¿Está corriendo?" if self.language == "es" else "Could not connect to backend. Is it running?")
-                return
-            if r.status_code == 200:
+            
+            # Delete locally
+            success, message = delete_user_local(user)
+            if success:
                 self.error_label.setText(f"✅ Usuario {user} eliminado." if self.language == "es" else f"✅ User {user} deleted.")
-            elif r.status_code == 403:
-                self.error_label.setText("❌ No puedes borrar el usuario demo." if self.language == "es" else "❌ You cannot delete the demo user.")
-            elif r.status_code == 404:
-                self.error_label.setText("Usuario no encontrado o endpoint /delete_user no existe." if self.language == "es" else "User not found or /delete_user endpoint does not exist.")
-            elif r.status_code == 405:
-                self.error_label.setText("Método no permitido. ¿Seguro que el backend está corriendo y acepta POST en /delete_user?" if self.language == "es" else "Method not allowed. Is the backend running and accepting POST on /delete_user?")
+                self.user.clear()
+                self.passw.clear()
             else:
-                try:
-                    msg = r.json().get("detail", "Error al borrar usuario." if self.language == "es" else "Error deleting user.")
-                except Exception:
-                    msg = "Error al borrar usuario." if self.language == "es" else "Error deleting user."
-                self.error_label.setText(msg)
+                error_msg = message
+                if "not found" in message:
+                    error_msg = "Usuario no encontrado." if self.language == "es" else "User not found."
+                self.error_label.setText(f"❌ {error_msg}")
         except Exception as e:
-            self.error_label.setText(f"No se pudo conectar al servidor: {e}" if self.language == "es" else f"Could not connect to server: {e}")
+            self.error_label.setText(f"Error: {e}")
 
 class ComponentSelectorDialog(QDialog):
     def __init__(self, categoria, componentes, language="es", parent=None):
@@ -739,9 +727,17 @@ class ComponentSelectorDialog(QDialog):
         comp = item.data(Qt.ItemDataRole.UserRole)
         img_url = comp.get("imagen", "")
         if img_url:
-            pix = QPixmap()
-            pix.loadFromData(requests.get(img_url).content)
-            self.img_label.setPixmap(pix.scaled(180, 180, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            # Try to load image from URL (graceful fallback)
+            try:
+                import urllib.request
+                pix = QPixmap()
+                with urllib.request.urlopen(img_url, timeout=2) as response:
+                    pix.loadFromData(response.read())
+                self.img_label.setPixmap(pix.scaled(180, 180, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            except Exception:
+                # Fallback: show placeholder
+                self.img_label.clear()
+                self.img_label.setText("📸")
         else:
             self.img_label.clear()
         self.current_url = comp.get("url", "")
@@ -768,29 +764,8 @@ def user_data_dir(username):
         os.makedirs(user_dir)
     return user_dir
 
-def user_chat_path(username):
-    return os.path.join(user_data_dir(username), "chat.json")
-
 def user_builds_path(username):
     return os.path.join(user_data_dir(username), "builds.db")
-
-def load_user_chat(username):
-    path = user_chat_path(username)
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
-
-def save_user_chat(username, chat):
-    path = user_chat_path(username)
-    try:
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(chat, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
 
 def user_db_path(username):
     # For builds/taller, use a per-user DB file
@@ -1207,11 +1182,6 @@ class TallerTab(QWidget):
         btn_edit_pc = QPushButton(self.tr("Editar PC"))
         btn_edit_pc.clicked.connect(self.editar_pc)
         self.detail_layout.addWidget(btn_edit_pc)
-        parent = self.parent()
-        if parent is not None and hasattr(parent, "bytecoon_output"):
-            parent.bytecoon_output.append(  # type: ignore
-                f"<b>Bytecoon 🦝:</b> {self.tr('¿Qué hay de nuevo con PC')} <b>{pc[1]}</b>? {self.tr('¿Algún cambio de componente o algún fallo reportado?')}"
-            )
 
     def nueva_pc(self):
         nombre, ok = QInputDialog.getText(self, self.tr("Nueva PC"), self.tr("Nombre de la PC:"))
@@ -1573,15 +1543,32 @@ class PCBuildSection(QWidget):
 
     def update_total(self):
         total = 0
-        for combo in self.combos.values():
+        build_data = {}
+        for nombre, combo in self.combos.items():
             text = combo.currentText()
             match = re.search(r"₡([\d,]+)", text)
             if match:
                 price = int(match.group(1).replace(",", ""))
                 total += price
+            # Map component names to build analysis keys
+            if "procesador" in nombre.lower() or "processor" in nombre.lower():
+                build_data["cpu"] = text
+            elif "tarjeta de video" in nombre.lower() or "graphics" in nombre.lower():
+                build_data["gpu"] = text
+            elif "ram" in nombre.lower():
+                build_data["ram"] = text
+            elif "fuente" in nombre.lower() or "power" in nombre.lower():
+                build_data["psu"] = text
+            elif "almacenamiento" in nombre.lower() or "storage" in nombre.lower():
+                build_data["storage"] = text
+        
         lang = getattr(self, "language", "es")
         label = "Estimated total: ₡{total:,}" if lang == "en" else "Total estimado: ₡{total:,}"
         self.total_label.setText(label.format(total=total))
+        
+        # Trigger analysis update if parent has method
+        if hasattr(self.parent(), "update_analysis"):
+            self.parent().update_analysis(build_data)
 
     def save_current_pc(self):
         name = self.pc_name_input.text().strip()
@@ -1648,7 +1635,21 @@ class PCBuildSection(QWidget):
                 tip_label.setStyleSheet("font-size: 14px; color: #b0bec5;")
                 tips_layout.addWidget(tip_label)
             vbox.addWidget(tips_box)
+            # Make frame clickable to load build into analysis
+            frame.mousePressEvent = lambda event, b=pc: self.load_build_to_analysis(b)
+            frame.setCursor(Qt.CursorShape.PointingHandCursor)
             self.saved_pcs_layout.addWidget(frame)
+    
+    def load_build_to_analysis(self, pc):
+        """Load a saved build into analysis by updating combos and triggering analysis"""
+        # Update all combo boxes to match saved build
+        for component_name, component_value in pc["components"].items():
+            if component_name in self.combos:
+                idx = self.combos[component_name].findText(component_value)
+                if idx >= 0:
+                    self.combos[component_name].setCurrentIndex(idx)
+        # This will trigger update_total via signal, which calls update_analysis
+        self.update_total()
 
     def set_language(self, lang):
         self.language = lang
@@ -1661,8 +1662,9 @@ class PCBuildSection(QWidget):
             "Graphics Card", "Storage", "Case", "Cooling"
         ]
         labels = labels_es if lang == "es" else labels_en
-        for i, nombre in enumerate(self.labels):
-            self.labels[nombre].setText(labels[i])
+        # FIXED: Iterate correctly over dictionary items
+        for (nombre, label_widget), new_text in zip(self.labels.items(), labels):
+            label_widget.setText(new_text)
         self.title.setText(self.tr("pc_build_title"))
         self.update_total()
         if hasattr(self, "pc_name_input"):
@@ -1695,8 +1697,9 @@ class PCBuildrApp(QWidget):
         super().__init__(parent)
         self.language = "es"
         self.theme = "dark"
-        self.chat_history = []  # [(rol, mensaje)], rol: "usuario" o "asistente"
-        self.setWindowTitle("PCBuildr - Tu asistente de hardware")
+        self.build_analyzer = BuildAnalyzer()
+        self.current_build = {}
+        self.setWindowTitle("PCBuildr Beta v2.0")
         self.setStyleSheet(APP_STYLE_DARK)
         main_layout = QVBoxLayout(self)
         self.sidebar_visible = False
@@ -1739,12 +1742,12 @@ class PCBuildrApp(QWidget):
         nav_layout = QHBoxLayout(nav_bar)
         nav_layout.setContentsMargins(0, 0, 0, 0)
         nav_layout.setSpacing(0)
-        self.btn_chat = QPushButton("Chat")
-        self.btn_pcbuild = QPushButton("Armado de PC")
-        self.btn_config = QPushButton("Configuración")
-        self.btn_logout = QPushButton("Cerrar sesión")
+        self.btn_analysis = QPushButton("Build Analysis")
+        self.btn_pcbuild = QPushButton("PC Builder")
+        self.btn_config = QPushButton("Settings")
+        self.btn_logout = QPushButton("Logout")
         self.btn_logout.setStyleSheet("color: #ff6b6b; font-weight: bold;")
-        nav_layout.addWidget(self.btn_chat)
+        nav_layout.addWidget(self.btn_analysis)
         nav_layout.addWidget(self.btn_pcbuild)
         nav_layout.addWidget(self.btn_config)
         nav_layout.addStretch()
@@ -1759,129 +1762,229 @@ class PCBuildrApp(QWidget):
         self.stacked_widget = QStackedWidget(self)
         main_layout.addWidget(self.stacked_widget)
 
-        # --- Sección de chat ---
-        self.chat_section = QWidget()
-        self.stacked_widget.addWidget(self.chat_section)
-        chat_layout = QVBoxLayout(self.chat_section)
-        # Título
-        title_chat = QLabel("Bytecoon, tu asistente IA 🦝💬")
-        title_chat.setStyleSheet("font-size: 22px; font-weight: bold; color: #00bfff;")
-        self.title_chat = title_chat
-        chat_layout.addWidget(title_chat, alignment=Qt.AlignmentFlag.AlignHCenter)
-        # Botón para reiniciar conversación (solo una vez)
-        self.btn_nuevo_chat = QPushButton("Nuevo chat" if self.language == "es" else "New chat")
-        self.btn_nuevo_chat.setStyleSheet("font-size: 16px; min-width: 120px;")
-        self.btn_nuevo_chat.clicked.connect(self.reiniciar_chat)
-        chat_layout.addWidget(self.btn_nuevo_chat, alignment=Qt.AlignmentFlag.AlignRight)
-        # Área de texto (chat)
-        self.bytecoon_output = QTextEdit()
-        self.bytecoon_output.setReadOnly(True)
-        self.bytecoon_output.setStyleSheet("""
+        # --- Build Analysis Section ---
+        self.build_analysis_section = QWidget()
+        self.stacked_widget.addWidget(self.build_analysis_section)
+        analysis_layout = QVBoxLayout(self.build_analysis_section)
+        analysis_layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Title
+        analysis_title = QLabel("Build Analysis 📊")
+        analysis_title.setStyleSheet("font-size: 24px; font-weight: bold; color: #00bfff; margin-bottom: 20px;")
+        analysis_layout.addWidget(analysis_title)
+        
+        # Empty state message
+        self.analysis_empty_label = QLabel(
+            "No build selected.\nCreate a build in PC Builder first, then select it to see analysis."
+        )
+        self.analysis_empty_label.setStyleSheet("font-size: 16px; color: #b0bec5; text-align: center; margin: 40px;")
+        self.analysis_empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        analysis_layout.addWidget(self.analysis_empty_label)
+        
+        # Analysis results placeholder
+        self.analysis_results = QTextEdit()
+        self.analysis_results.setReadOnly(True)
+        self.analysis_results.setVisible(False)
+        self.analysis_results.setStyleSheet("""
             QTextEdit {
                 background: #181c20;
                 color: #e3eafc;
                 border: 2px solid #1976D2;
                 border-radius: 10px;
                 padding: 12px;
-                font-size: 16px;
+                font-size: 14px;
             }
         """)
-        chat_layout.addWidget(self.bytecoon_output)
-        # Entrada de texto y botón enviar
-        self.bytecoon_input = QLineEdit()
-        self.bytecoon_input.setPlaceholderText("Escribe tu pregunta o mensaje para Bytecoon...")
-        self.bytecoon_input.setStyleSheet("""
-            QLineEdit {
-                background: #23272b;
-                color: #e3eafc;
-                border: 2px solid #1976D2;
-                border-radius: 10px;
-                padding: 8px 12px;
-                font-size: 16px;
+        analysis_layout.addWidget(self.analysis_results)
+        analysis_layout.addStretch()
+
+        # --- PC Builder Section (PCBuildSection) ---
+        self.pc_build_section = PCBuildSection(self)
+        self.stacked_widget.addWidget(self.pc_build_section)
+        # --- Sección de configuración (settings) - MEJORADA ---
+        self.config_section = QWidget()
+        self.config_section.setStyleSheet("""
+            QWidget {
+                background: #181c20;
             }
-            QLineEdit:focus {
+        """)
+        config_layout = QVBoxLayout(self.config_section)
+        config_layout.setContentsMargins(40, 40, 40, 40)
+        config_layout.setSpacing(20)
+        
+        # Título principal
+        config_title = QLabel("⚙️ " + ("Configuración" if self.language == "es" else "Settings"))
+        config_title.setStyleSheet("font-size: 28px; font-weight: bold; color: #00bfff; margin-bottom: 20px;")
+        config_layout.addWidget(config_title)
+        
+        # Sección de Lenguaje
+        lang_section = QFrame()
+        lang_section.setStyleSheet("""
+            QFrame {
+                background: #23272b;
+                border: 2px solid #1976D2;
+                border-radius: 12px;
+                padding: 20px;
+            }
+        """)
+        lang_layout = QVBoxLayout(lang_section)
+        lang_title = QLabel("🌐 " + ("Idioma" if self.language == "es" else "Language"))
+        lang_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #00bfff; margin-bottom: 8px;")
+        lang_layout.addWidget(lang_title)
+        lang_desc = QLabel("Español / English" if self.language == "es" else "Spanish / English")
+        lang_desc.setStyleSheet("font-size: 14px; color: #b0bec5; margin-bottom: 12px;")
+        lang_layout.addWidget(lang_desc)
+        self.btn_lang = QPushButton("🔄 " + ("Cambiar a inglés" if self.language == "es" else "Switch to Spanish"))
+        self.btn_lang.setStyleSheet("""
+            QPushButton {
+                background: #1976D2;
+                color: #e3eafc;
+                border-radius: 8px;
+                padding: 12px 20px;
+                font-size: 16px;
+                font-weight: 600;
+                border: 2px solid #1976D2;
+            }
+            QPushButton:hover {
+                background: #0d47a1;
                 border: 2px solid #00bfff;
             }
         """)
-        self.btn_enviar = QPushButton("Enviar")
-        self.btn_enviar.setStyleSheet("font-size: 16px;")
-        btns_layout = QHBoxLayout()
-        btns_layout.addWidget(self.bytecoon_input)
-        btns_layout.addWidget(self.btn_enviar)
-        chat_layout.addLayout(btns_layout)
-
-        # --- Sección de armado de PC (PCBuildSection) ---
-        self.pc_build_section = PCBuildSection(self)
-        self.stacked_widget.addWidget(self.pc_build_section)
-        # --- Sección de configuración (settings) ---
-        self.config_section = QWidget()
-        config_layout = QVBoxLayout(self.config_section)
-        config_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.btn_lang = QPushButton("Cambiar a inglés" if self.language == "es" else "Switch to Spanish")
-        self.btn_lang.setStyleSheet("font-size: 18px; min-width: 180px;")
         self.btn_lang.clicked.connect(self.toggle_language)
-        self.btn_theme = QPushButton("Modo claro" if self.theme == "dark" else "Modo oscuro")
-        self.btn_theme.setStyleSheet("font-size: 18px; min-width: 180px;")
+        lang_layout.addWidget(self.btn_lang)
+        config_layout.addWidget(lang_section)
+        
+        # Sección de Tema
+        theme_section = QFrame()
+        theme_section.setStyleSheet("""
+            QFrame {
+                background: #23272b;
+                border: 2px solid #1976D2;
+                border-radius: 12px;
+                padding: 20px;
+            }
+        """)
+        theme_layout = QVBoxLayout(theme_section)
+        theme_title = QLabel("🎨 " + ("Tema" if self.language == "es" else "Theme"))
+        theme_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #00bfff; margin-bottom: 8px;")
+        theme_layout.addWidget(theme_title)
+        theme_desc = QLabel(("Oscuro / Claro" if self.language == "es" else "Dark / Light") + " mode")
+        theme_desc.setStyleSheet("font-size: 14px; color: #b0bec5; margin-bottom: 12px;")
+        theme_layout.addWidget(theme_desc)
+        self.btn_theme = QPushButton("🌙 " + ("Modo claro" if self.theme == "dark" else "Modo oscuro"))
+        self.btn_theme.setStyleSheet("""
+            QPushButton {
+                background: #1976D2;
+                color: #e3eafc;
+                border-radius: 8px;
+                padding: 12px 20px;
+                font-size: 16px;
+                font-weight: 600;
+                border: 2px solid #1976D2;
+            }
+            QPushButton:hover {
+                background: #0d47a1;
+                border: 2px solid #00bfff;
+            }
+        """)
         self.btn_theme.clicked.connect(self.toggle_theme)
-        self.btn_exit = QPushButton("Salir de la aplicación" if self.language == "es" else "Exit application")
-        self.btn_exit.setStyleSheet("font-size: 18px; min-width: 180px; color: #ff6b6b; font-weight: bold;")
-        self.btn_exit.clicked.connect(self.salir_app)
-        config_layout.addWidget(self.btn_lang)
-        config_layout.addWidget(self.btn_theme)
-        config_layout.addSpacing(24)
-        config_layout.addWidget(self.btn_exit)
+        theme_layout.addWidget(self.btn_theme)
+        config_layout.addWidget(theme_section)
+        
+        # Sección de Información
+        info_section = QFrame()
+        info_section.setStyleSheet("""
+            QFrame {
+                background: #23272b;
+                border: 2px solid #00bfff;
+                border-radius: 12px;
+                padding: 20px;
+            }
+        """)
+        info_layout = QVBoxLayout(info_section)
+        info_title = QLabel("ℹ️ " + ("Información" if self.language == "es" else "Information"))
+        info_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #00bfff; margin-bottom: 8px;")
+        info_layout.addWidget(info_title)
+        app_version = QLabel("PCBuildr Beta 1.0\nDesktop PC Analysis Tool\nOffline-First Architecture")
+        app_version.setStyleSheet("font-size: 14px; color: #e3eafc; line-height: 1.6;")
+        info_layout.addWidget(app_version)
+        config_layout.addWidget(info_section)
+        
         config_layout.addStretch()
+        
+        # Sección de Salir - Separada al final
+        exit_section = QFrame()
+        exit_section.setStyleSheet("""
+            QFrame {
+                background: #181c20;
+                border: none;
+            }
+        """)
+        exit_layout = QVBoxLayout(exit_section)
+        self.btn_exit = QPushButton("⏻ " + ("Salir de la aplicación" if self.language == "es" else "Exit Application"))
+        self.btn_exit.setStyleSheet("""
+            QPushButton {
+                background: #c92a2a;
+                color: #e3eafc;
+                border-radius: 8px;
+                padding: 12px 20px;
+                font-size: 16px;
+                font-weight: 600;
+                border: 2px solid #c92a2a;
+            }
+            QPushButton:hover {
+                background: #a61e4d;
+                border: 2px solid #ff6b6b;
+            }
+        """)
+        self.btn_exit.clicked.connect(self.salir_app)
+        exit_layout.addWidget(self.btn_exit)
+        config_layout.addWidget(exit_section)
+        
         self.stacked_widget.addWidget(self.config_section)
 
-        # Conexiones
-        self.btn_enviar.clicked.connect(self.enviar_pregunta_bytecoon)
-        self.bytecoon_input.returnPressed.connect(self.enviar_pregunta_bytecoon)
-        self.btn_chat.clicked.connect(lambda: self.cambiar_seccion("chat"))
+        # Connect button navigation
+        self.btn_analysis.clicked.connect(lambda: self.cambiar_seccion("analysis"))
         self.btn_pcbuild.clicked.connect(lambda: self.cambiar_seccion("pcbuild"))
-        self.btn_config.clicked.connect(self.abrir_configuracion)
+        self.btn_config.clicked.connect(lambda: self.cambiar_seccion("config"))
         self.btn_logout.clicked.connect(self.cerrar_sesion)
 
-        self.cambiar_seccion("chat")
+        # Set default view to Build Analysis
+        self.cambiar_seccion("analysis")
 
     def set_language(self, lang):
         self.language = lang
         texts = {
             "es": {
-                "title": "PCBuildr - Tu asistente de hardware",
-                "chat": "Chat",
-                "pcbuild": "Armado de PC",
+                "title": "PCBuildr Beta - Analizador de Hardware",
+                "analysis": "Análisis de Build",
+                "pcbuild": "Constructor de PC",
                 "config": "Configuración",
                 "logout": "Cerrar sesión",
-                "lang": "Cambiar a inglés",
+                "lang": "Switch to English",
                 "theme_dark": "Modo claro",
                 "theme_light": "Modo oscuro",
                 "exit": "Salir de la aplicación",
-                "chat_title": "Bytecoon, tu asistente IA 🦝💬",
-                "input_placeholder": "Escribe tu pregunta o mensaje para Bytecoon...",
-                "send": "Enviar",
-                "new_chat": "Nuevo chat"
+                "empty_analysis": "No hay build seleccionado.\nCrea un build en el Constructor de PC y selecciónalo para ver el análisis.",
             },
             "en": {
-                "title": "PCBuildr - Your hardware assistant",
-                "chat": "Chat",
-                "pcbuild": "PC Build",
+                "title": "PCBuildr Beta - Hardware Analysis Tool",
+                "analysis": "Build Analysis",
+                "pcbuild": "PC Builder",
                 "config": "Settings",
-                "logout": "Log out",
-                "lang": "Switch to Spanish",
+                "logout": "Logout",
+                "lang": "Cambiar a español",
                 "theme_dark": "Light mode",
                 "theme_light": "Dark mode",
-                "exit": "Exit application",
-                "chat_title": "Bytecoon, your AI assistant 🦝💬",
-                "input_placeholder": "Type your question or message for Bytecoon...",
-                "send": "Send",
-                "new_chat": "New chat"
+                "exit": "Exit Application",
+                "empty_analysis": "No build selected.\nCreate a build in PC Builder first, then select it to see analysis.",
             }
         }
         t = texts[lang]
         if hasattr(self, "title_label"):
             self.title_label.setText(t["title"])
-        if hasattr(self, "btn_chat"):
-            self.btn_chat.setText(t["chat"])
+        if hasattr(self, "btn_analysis"):
+            self.btn_analysis.setText(t["analysis"])
         if hasattr(self, "btn_pcbuild"):
             self.btn_pcbuild.setText(t["pcbuild"])
         if hasattr(self, "btn_config"):
@@ -1894,113 +1997,100 @@ class PCBuildrApp(QWidget):
             self.btn_theme.setText(t["theme_dark"] if self.theme == "dark" else t["theme_light"])
         if hasattr(self, "btn_exit"):
             self.btn_exit.setText(t["exit"])
-        if hasattr(self, "title_chat"):
-            self.title_chat.setText(t["chat_title"])
-        if hasattr(self, "bytecoon_input"):
-            self.bytecoon_input.setPlaceholderText(t["input_placeholder"])
-        if hasattr(self, "btn_enviar"):
-            self.btn_enviar.setText(t["send"])
-        if hasattr(self, "btn_nuevo_chat"):
-            self.btn_nuevo_chat.setText(t["new_chat"])
+        # Update empty state message
+        if hasattr(self, "analysis_empty_label"):
+            self.analysis_empty_label.setText(t["empty_analysis"])
         if hasattr(self, "pc_build_section"):
             self.pc_build_section.set_language(lang)
-        if hasattr(self, "config_section"):
-            layout = self.config_section.layout()
-            if layout is not None:
-                for i in range(layout.count()):
-                    item = layout.itemAt(i)
-                    if item is not None:
-                        w = item.widget()
-                        if isinstance(w, QPushButton):
-                            if w == self.btn_lang:
-                                w.setText(t["lang"])
-                            elif w == self.btn_theme:
-                                w.setText(t["theme_dark"] if self.theme == "dark" else t["theme_light"])
-                            elif w == self.btn_exit:
-                                w.setText(t["exit"])
         self.setWindowTitle(t["title"])
 
-    def enviar_pregunta_bytecoon(self):
-        pregunta = self.bytecoon_input.text().strip()
-        if not pregunta:
-            return
-        # Añadir mensaje del usuario al historial de sesión
-        self.chat_history.append(("usuario", pregunta))
-        if self.language == "es":
-            self.bytecoon_output.append(f"<b>Tú:</b> {pregunta}")
-        else:
-            self.bytecoon_output.append(f"<b>You:</b> {pregunta}")
-        self.bytecoon_input.clear()
-        # Construir historial para el modelo
-        system_prompts = {
-            "es": (
-                "Eres Bytecoon, un asistente experto en hardware de computadoras, PC building y soporte técnico. "
-                "Responde SIEMPRE en español, de forma clara y útil. "
-                "Si el usuario te pregunta por recomendaciones de componentes, "
-                "da la respuesta en español y nunca mezcles inglés y español."
-            ),
-            "en": (
-                "You are Bytecoon, an expert assistant in computer hardware, PC building, and tech support. "
-                "Always reply in English, clearly and helpfully. "
-                "If the user asks for component recommendations, answer in English and never mix Spanish and English."
-            )
-        }
-        system_prompt = system_prompts.get(self.language, system_prompts["es"])
-        messages = [{"role": "system", "content": system_prompt}]
-        for rol, msg in self.chat_history:
-            if rol == "usuario":
-                messages.append({"role": "user", "content": msg})
-            else:
-                messages.append({"role": "assistant", "content": msg})
-        try:
-            # Use Bytecoon AI assistant (works offline by default)
-            if bytecoon is not None:
-                respuesta = bytecoon.ask(pregunta)
-            else:
-                respuesta = "Bytecoon not initialized" if self.language == "en" else "Bytecoon no está inicializado"
-        except Exception as e:
-            if self.language == "es":
-                respuesta = f"Error al contactar a Bytecoon: {e}"
-            else:
-                respuesta = f"Error contacting Bytecoon: {e}"
-        # Añadir respuesta de Bytecoon al historial antes de mostrarla
-        self.chat_history.append(("asistente", respuesta))
-        self.recibir_respuesta_bytecoon(respuesta)
-
-    def reiniciar_chat(self):
-        self.chat_history = []
-        self.bytecoon_output.clear()
-        if self.language == "es":
-            self.bytecoon_output.append("<b>Bytecoon:</b> ¡Hola! ¿En qué puedo ayudarte hoy?")
-        else:
-            self.bytecoon_output.append("<b>Bytecoon:</b> Hi! How can I help you today?")
 
     def toggle_language(self):
-        # Cambia el idioma de la interfaz
+        """Switch between Spanish and English"""
         new_lang = "en" if self.language == "es" else "es"
         self.set_language(new_lang)
 
     def toggle_theme(self):
-        # Cambia el tema de la interfaz
+        """Toggle between dark and light theme"""
         if self.theme == "dark":
             self.theme = "light"
             self.setStyleSheet(APP_STYLE_LIGHT)
             if hasattr(self, "btn_theme"):
-                self.btn_theme.setText("Modo oscuro" if self.language == "es" else "Dark mode")
+                btn_text = "Modo oscuro" if self.language == "es" else "Dark mode"
+                self.btn_theme.setText(btn_text)
         else:
             self.theme = "dark"
             self.setStyleSheet(APP_STYLE_DARK)
             if hasattr(self, "btn_theme"):
-                self.btn_theme.setText("Modo claro" if self.language == "es" else "Light mode")
-
-    def abrir_configuracion(self):
-        self.cambiar_seccion("config")
+                btn_text = "Modo claro" if self.language == "es" else "Light mode"
+                self.btn_theme.setText(btn_text)
 
     def salir_app(self):
+        """Exit the application"""
         QApplication.quit()
 
+    def update_analysis(self, build_data: dict):
+        """Update the build analysis panel with real data"""
+        self.current_build = build_data
+        analysis = self.build_analyzer.analyze_build(build_data)
+        
+        # Translations for analysis UI
+        translations = {
+            "es": {
+                "title": "Análisis de Build",
+                "tier": "Nivel de Build:",
+                "performance": "Puntuación de Rendimiento:",
+                "power": "Consumo de Energía Estimado:",
+                "bottleneck": "Análisis de Cuello de Botella:",
+                "issues": "Problemas de Compatibilidad:",
+                "recommendations": "Recomendaciones:",
+            },
+            "en": {
+                "title": "Build Analysis",
+                "tier": "Build Tier:",
+                "performance": "Performance Score:",
+                "power": "Estimated Power Draw:",
+                "bottleneck": "Bottleneck Analysis:",
+                "issues": "Compatibility Issues:",
+                "recommendations": "Recommendations:",
+            }
+        }
+        
+        t = translations.get(self.language, translations["es"])
+        
+        # Format analysis output
+        output = f"""<h2 style="color: #00bfff;">{t['title']}</h2>
+        
+<b>{t['tier']}</b> {analysis['build_tier']}<br>
+<b>{t['performance']}</b> {analysis['performance_score']:.1f}/100<br>
+<b>{t['power']}</b> {analysis['power_estimate']}W<br>
+<br>
+<b>{t['bottleneck']}</b><br>
+{analysis['bottleneck_analysis']}<br>
+<br>
+"""
+        
+        if analysis['compatibility_issues']:
+            output += f"<b>{t['issues']}</b><br>"
+            for issue in analysis['compatibility_issues']:
+                output += f"• {issue}<br>"
+            output += "<br>"
+        
+        output += f"<b>{t['recommendations']}</b><br>"
+        for rec in analysis['recommendations']:
+            output += f"• {rec}<br>"
+        
+        # Update UI
+        if build_data and any(build_data.values()):
+            self.analysis_empty_label.setVisible(False)
+            self.analysis_results.setVisible(True)
+            self.analysis_results.setHtml(output)
+        else:
+            self.analysis_empty_label.setVisible(True)
+            self.analysis_results.setVisible(False)
+
     def cerrar_sesion(self):
-        # Cierra la ventana principal y vuelve a mostrar el login
+        """Logout and return to login screen"""
         self.hide()
         auth = AuthDialog()
         if auth.exec_():
@@ -2010,21 +2100,16 @@ class PCBuildrApp(QWidget):
             QApplication.quit()
 
     def cambiar_seccion(self, seccion):
-        # Cambia la vista principal según la sección seleccionada
-        if seccion == "chat":
-            self.stacked_widget.setCurrentWidget(self.chat_section)
+        """Switch between main sections"""
+        if seccion == "analysis":
+            self.stacked_widget.setCurrentWidget(self.build_analysis_section)
         elif seccion == "pcbuild":
             self.stacked_widget.setCurrentWidget(self.pc_build_section)
         elif seccion == "config":
             self.stacked_widget.setCurrentWidget(self.config_section)
-        # Puedes agregar más secciones aquí si las necesitas
-
-    def recibir_respuesta_bytecoon(self, respuesta):
-        # Muestra la respuesta de Bytecoon en el chat
-        self.bytecoon_output.append(f"<b>Bytecoon:</b> {respuesta}")
 
 if __name__ == '__main__':
-    # No need to wait for LM Studio - Bytecoon works offline!
+    # PCBuildr - Offline-first desktop application
     app = QApplication(sys.argv)
     welcome = WelcomeDialog()
     welcome.exec_()
@@ -2032,12 +2117,13 @@ if __name__ == '__main__':
     if not auth.exec_():
         sys.exit(0)
 
-    # Initialize Bytecoon with selected language
+    # Get user language and username
     language = auth.language
     username = auth.user.text() or "DemoUsr"
-    bytecoon = Bytecoon(language)
 
+    # Launch main application
     mainWin = PCBuildrApp()
+    mainWin.setWindowTitle("PCBuildr Beta - Hardware Analysis Tool" if language == "en" else "PCBuildr Beta - Herramienta de Anlisis")
     mainWin.set_language(language)
     mainWin.show()
     sys.exit(app.exec_())
